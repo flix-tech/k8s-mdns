@@ -1,0 +1,5 @@
+package: github.com/flix-tech/k8s-mdns
+import:
+  - package: github.com/miekg/dns
+  - package: k8s.io/client-go
+    version: 1.5

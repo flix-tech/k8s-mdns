@@ -39,7 +39,7 @@ func init() {
 	//}
 }
 
-// Publish adds a record, described in RFC XXX
+// Publish adds a record, describewrite tod in RFC XXX
 func Publish(r string) error {
 	rr, err := dns.NewRR(r)
 	if err != nil {
@@ -207,9 +207,19 @@ func (c *connector) mainloop() {
 		if len(msg.Answer) > 0 {
 			log.Println(msg)
 
+			addr := ipv4mcastaddr
+			// check unicast-response bit https://tools.ietf.org/html/rfc6762#section-5.4
+			if msg.Question[0].Qclass & 32768 > 0 {
+				log.Println("using unicast")
+				addr = msg.UDPAddr
+			}
+
 			// nuke questions
 			msg.Question = nil
-			if err := c.writeMessage(msg.Msg, msg.UDPAddr); err != nil {
+
+			msg.UDPAddr = addr
+
+			if err := c.writeMessage(msg.Msg, addr); err != nil {
 				log.Fatalf("Cannot send: %s", err)
 			}
 		}

@@ -3,14 +3,14 @@ package main
 import (
 	"github.com/flix-tech/k8s-mdns/mdns"
 	"log"
-	"k8s.io/client-go/1.5/kubernetes"
-	"k8s.io/client-go/1.5/pkg/api"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/api/core/v1"
 	"fmt"
 	"flag"
-	"k8s.io/client-go/1.5/tools/clientcmd"
-	"k8s.io/client-go/1.5/pkg/api/v1"
-	"k8s.io/client-go/1.5/pkg/watch"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/apimachinery/pkg/watch"
 	"net"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func mustPublish(rr string) {
@@ -49,13 +49,13 @@ func main() {
 		panic(err.Error())
 	}
 	for {
-		services, err := clientset.Core().Services("").Watch(api.ListOptions{})
+		services, err := clientset.CoreV1().Services("").Watch(metaV1.ListOptions{})
 		if err != nil {
 			panic(err.Error())
 		}
 
 		for {
-			ev := <- services.ResultChan()
+			ev := <-services.ResultChan()
 
 			if ev.Object == nil {
 				log.Fatalln("Error during watching")

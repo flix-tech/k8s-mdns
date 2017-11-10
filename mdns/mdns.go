@@ -198,21 +198,22 @@ func (c *connector) mainloop() {
 	for {
 		msg := <-in
 		msg.MsgHdr.Response = true     // convert question to response
+		msg.MsgHdr.Authoritative = true
 		msg.Answer = make([]dns.RR, 0) // some queries already have an answer, we should not answer them
 		for _, result := range c.query(msg.Question) {
+			// Set Cache-Flush bit
+			result.RR.Header().Class = result.RR.Header().Class | 0x8000
 			msg.Answer = append(msg.Answer, result.RR)
 		}
 		msg.Extra = append(msg.Extra, c.findExtra(msg.Answer...)...)
 
 		if len(msg.Answer) > 0 {
-			log.Println(msg)
-
 			addr := ipv4mcastaddr
 			// check unicast-response bit https://tools.ietf.org/html/rfc6762#section-5.4
-			if msg.Question[0].Qclass & 32768 > 0 {
-				log.Println("using unicast")
-				addr = msg.UDPAddr
-			}
+			//if msg.Question[0].Qclass & 32768 > 0 {
+			//	log.Println("using unicast")
+			//	addr = msg.UDPAddr
+			//}
 
 			// nuke questions
 			msg.Question = nil
@@ -220,7 +221,7 @@ func (c *connector) mainloop() {
 			msg.UDPAddr = addr
 
 			if err := c.writeMessage(msg.Msg, addr); err != nil {
-				log.Fatalf("Cannot send: %s", err)
+				log.Println("Cannot send: %s", err)
 			}
 		}
 	}

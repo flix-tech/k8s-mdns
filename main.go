@@ -27,17 +27,19 @@ func mustUnPublish(rr string) {
 
 var (
 	master = flag.String("master", "", "url to master")
+	test = flag.Bool("test", false, "testing mode, no connection to k8s")
 )
 
 func main() {
-	mustPublish("router.local. 60 IN A 192.168.1.254")
-	mustPublish("254.1.168.192.in-addr.arpa. 60 IN PTR router.local.")
-
-	//mustUnPublish("router.local. 60 IN A 192.168.1.254")
-
-	mdns.Clear()
-
 	flag.Parse()
+
+	if *test {
+		mustPublish("router.local. 60 IN A 192.168.1.254")
+		mustPublish("254.1.168.192.in-addr.arpa. 60 IN PTR router.local.")
+
+		select{ }
+	}
+
 	// uses the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags(*master, "")
 	if err != nil {

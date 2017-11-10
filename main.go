@@ -27,6 +27,7 @@ func mustUnPublish(rr string) {
 
 var (
 	master = flag.String("master", "", "url to master")
+	default_namespace = flag.String("default-namespace", "default", "namespace in which services should also be published with a shorter entry")
 	test = flag.Bool("test", false, "testing mode, no connection to k8s")
 )
 
@@ -71,17 +72,26 @@ func main() {
 
 			reverseIp := net.IPv4(ip[15], ip[14], ip[13], ip[12])
 
-			record := fmt.Sprintf("%s.%s.local. 60 IN A %s", service.Name, service.Namespace, ip)
-			reverseRecord := fmt.Sprintf("%s.in-addr.arpa. 60 IN PTR %s.%s.local.", reverseIp, service.Name, service.Namespace)
+			records := []string{
+				fmt.Sprintf("%s.%s.local. 120 IN A %s", service.Name, service.Namespace, ip),
+				fmt.Sprintf("%s.in-addr.arpa. 120 IN PTR %s.%s.local.", reverseIp, service.Name, service.Namespace),
+			}
+
+			if service.Namespace == *default_namespace {
+				records = append(records, fmt.Sprintf("%s.local. 120 IN A %s", service.Name, ip))
+			}
+
 			switch ev.Type {
 			case watch.Added:
-				log.Printf("Added dns record %s.%s.local. with %s\n", service.Name, service.Namespace, ip)
-				mustPublish(record)
-				mustPublish(reverseRecord)
+				for _, record := range records {
+					log.Printf("Added %s\n", record)
+					mustPublish(record)
+				}
 			case watch.Deleted:
-				log.Printf("Removed dns record %s.%s.local. with %s\n", service.Name, service.Namespace, ip)
-				mustUnPublish(record)
-				mustUnPublish(reverseRecord)
+				for _, record := range records {
+					log.Printf("Remove %s\n", record)
+					mustUnPublish(record)
+				}
 			case watch.Modified:
 				// ignore
 			}
